@@ -1,6 +1,6 @@
 #' Frost hardiness function
 #'
-#' second order model for forst hardiness
+#' second order model for forst hardiness #comment by YP:should be the first order model
 #' after Leinone et al. 1995 and simplified by
 #' Hanninen and Kramer 2007
 #'
@@ -41,7 +41,7 @@ frost_hardiness <- function(
     )
 
   # calculate the rate of change of frost hardiness
-  # and asymptotic frost hardiness (C2/3 and D2/3,
+  # and asymptotic frost hardiness (C2/3 and D2/3, #-->refer Appendix in Hanninen and Kramer 2007
   # where D3 equals the sum of Rah/Rh up until t/i).
   for (i in 1:l){
     Sh <- sum(Rh[1:i])

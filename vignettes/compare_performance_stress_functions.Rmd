@@ -1,0 +1,199 @@
+---
+title: "compare two ways to construct stress function"
+author: "Yunpeng"
+date: "05/12/2021"
+output: html_document
+---
+
+## compare the performance of two stress functions(introduced by Koen and Beni)-->how much does gpp estimation improve?
+
+## r set up
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(GenSA)
+source("../R/frost_hardiness.R")
+source("../R/model_hardening_byBeni.R")
+```
+
+
+## load the data uploaded by Koen
+```{r message = FALSE, warning = FALSE}
+df <- readRDS("../data/model_data.rds") %>%
+  mutate(
+    year = format(date, "%Y")
+  ) %>%
+  na.omit()
+```
+
+## load the optimal parameters obtained from Koen's method and Beni's method:
+```{r  message = FALSE, warning = FALSE}
+load("../data/parameters/optim_par_run100_koen.rds")
+optim_par_Koen<-optim_par;rm(optim_par)
+
+load("../data/parameters/optim_par_run100_beni.rds")
+optim_par_Beni<-optim_par;rm(optim_par)
+```
+
+## compare the performance by comparing the observation gpp and modelled gpp:
+
+### prepare the comparing the data
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+#a. using the optimilized parameter from Koen's method:
+scaling_factors <- df %>%
+  group_by(sitename, year) %>%
+  do({
+    scaling_factor <- frost_hardiness(.$tmin,optim_par_Koen)
+    data.frame(
+      sitename = .$sitename,
+      date = .$date,
+      scaling_factor_Koen = scaling_factor
+    )
+  })
+df <- left_join(df, scaling_factors)
+#b. using the optimilized parameter from Beni's method:
+scaling_factors <- df %>%
+  group_by(sitename, year) %>%
+  do({
+    scaling_factor <- model_hardening(.,optim_par_Beni)
+    data.frame(
+      sitename = .$sitename,
+      date = .$date,
+      scaling_factor_Beni = scaling_factor
+    )
+  })
+df <- left_join(df, scaling_factors)
+
+```
+
+### model evaluation:
+
+- simple stats:
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+library(sirad)
+ori_model_evas<-modeval(df$gpp_mod,df$gpp,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+Koen_par_model_evas<-modeval(df$gpp_mod*df$scaling_factor_Koen,df$gpp,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+Beni_par_model_evas<-modeval(df$gpp_mod*df$scaling_factor_Beni,df$gpp,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+
+ori_model_evas<-t(as.data.frame(unlist(ori_model_evas)))
+Koen_par_model_evas<-t(as.data.frame(unlist(Koen_par_model_evas)))
+Beni_par_model_evas<-t(as.data.frame(unlist(Beni_par_model_evas)))
+
+stats_evals<-rbind(rbind(ori_model_evas,Koen_par_model_evas),Beni_par_model_evas)
+rownames(stats_evals)<-c("ori_model","Koen_par_model","Beni_par_model")
+print(stats_evals)
+```
+
+-scatter comparision plots
+```{r echo = FALSE, include = FALSE, message = FALSE, warning = FALSE}
+#evaluation using Beni's function:
+devtools::load_all("D:/Github/rbeni/")
+library(rbeni) #-->make the evaluation plot
+library(cowplot)
+library(grid)
+##make the evaluation plot
+```
+### a. General evaluation:
+
+```{r echo = FALSE, message = FALSE, warning = FALSE,fig.height=8,fig.width=16}
+df_modobs<-df %>%
+  select(sitename,date,gpp,gpp_mod,scaling_factor_Koen,scaling_factor_Beni) %>%
+  mutate(gpp_obs=gpp,
+         gpp_mod_ori=gpp_mod,
+         gpp_mod_optim_Koen=gpp_mod*scaling_factor_Koen,
+         gpp_mod_optim_Beni=gpp_mod*scaling_factor_Beni) %>%
+  mutate(gpp=NULL,
+         gpp_mod=NULL)
+
+#scatter plots to compare the model and observation gpp
+gpp_modobs_comp1<-df_modobs %>%
+  analyse_modobs2("gpp_mod_ori", "gpp_obs", type = "hex")
+gpp_modobs_comp2<-df_modobs %>%
+  analyse_modobs2("gpp_mod_optim_Koen", "gpp_obs", type = "hex")
+gpp_modobs_comp3<-df_modobs %>%
+  analyse_modobs2("gpp_mod_optim_Beni", "gpp_obs", type = "hex")
+
+#merge two plots
+evaulation_merge_plot<-plot_grid(gpp_modobs_comp1$gg,
+    gpp_modobs_comp2$gg,gpp_modobs_comp3$gg,
+labels = "auto",ncol =3,label_size = 12,align = "hv")
+plot(evaulation_merge_plot)
+```
+
+### b. Seasonality
+
+- By climate zone
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+#load the modis data-->tidy from Beni
+df_sites_modis_era <- read_rds(paste0("../data/df_sites_modis_era.csv"))
+#now take the df_modobs(ori,default, and optimized model gpp as the comparison) as the example
+df_season_climate <- df_modobs %>%
+  mutate(doy = lubridate::yday(date)) %>%
+  group_by(sitename, doy) %>%
+  summarise(obs = mean(gpp_obs, na.rm = TRUE),
+            mod_ori = mean(gpp_mod_ori, na.rm = TRUE),
+            mod_Koen = mean(gpp_mod_optim_Koen, na.rm = TRUE),
+            mod_Beni = mean(gpp_mod_optim_Beni, na.rm = TRUE)) %>%
+  left_join(
+    df_sites_modis_era,
+    by = "sitename"
+  ) %>%
+  mutate(northsouth = ifelse(lat>0, "North", "South")) %>%
+  dplyr::filter(koeppen_code != "-") %>%
+  mutate(kg_code_northsouth = paste(koeppen_code, northsouth)) %>%
+  group_by(kg_code_northsouth, doy) %>%
+  summarise(obs = mean(obs, na.rm = TRUE),
+            mod_ori = mean(mod_ori, na.rm = TRUE),
+            mod_Koen = mean(mod_Koen, na.rm =T),
+            mod_Beni = mean(mod_Beni, na.rm = TRUE)
+            )
+
+#plotting:
+#Seasonal course by climate zone:
+df_season_climate %>%
+  pivot_longer(c(obs, mod_ori,mod_Koen,mod_Beni), names_to = "Source", values_to = "gpp") %>%
+  ggplot(aes(doy, gpp, color = Source)) +
+  geom_line() +
+  scale_color_manual(values = c("mod_ori" = "red","mod_Koen" = "green3",
+                                "mod_Beni" = "orange", "obs" = "black"),
+        labels = c("Ori P-model","Koen-par P-model","Beni-par P-model", "Obs.")) +
+  labs(y = expression( paste("GPP (g C m"^-2, " d"^-1, ")" ) ),
+       x = "Day of year") +
+  facet_wrap(~kg_code_northsouth)
+
+# ggsave("./fig/meanseasonalcycle_by_climate_cal.pdf", width = 9, height = 6)
+```
+
+- b.By each site
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+#same as by the climate
+df_season_site <- df_modobs %>%
+  mutate(doy = lubridate::yday(date)) %>%
+  group_by(sitename, doy) %>%
+  summarise(obs = mean(gpp_obs, na.rm = TRUE),
+            mod_ori = mean(gpp_mod_ori, na.rm = TRUE),
+            mod_Koen = mean(gpp_mod_optim_Koen, na.rm = TRUE),
+            mod_Beni = mean(gpp_mod_optim_Beni, na.rm = TRUE)) %>%
+  group_by(sitename, doy) %>%
+  summarise(obs = mean(obs, na.rm = TRUE),
+            mod_ori = mean(mod_ori, na.rm = TRUE),
+            mod_Koen = mean(mod_Koen, na.rm =T),
+            mod_Beni = mean(mod_Beni, na.rm = TRUE)
+  )
+
+#plotting:
+#Seasonal course by climate zone:
+df_season_site %>%
+  pivot_longer(c(obs, mod_ori,mod_Koen,mod_Beni), names_to = "Source", values_to = "gpp") %>%
+  ggplot(aes(doy, gpp, color = Source)) +
+  geom_line() +
+  scale_color_manual(values = c("mod_ori" = "red","mod_Koen" = "green3",
+                                "mod_Beni" = "orange", "obs" = "black"),
+        labels = c("Ori P-model","Koen-par P-model","Beni-par P-model", "Obs.")) +
+  labs(y = expression( paste("GPP (g C m"^-2, " d"^-1, ")" ) ),
+       x = "Day of year") +
+  facet_wrap(~sitename)
+
+# ggsave("./fig/meanseasonalcycle_by_site_cal.pdf", width = 15, height = 30)
+
+```
+

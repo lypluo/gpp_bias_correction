@@ -15,7 +15,7 @@ df <- readRDS("data/model_data.rds") %>%
 # note: series need to be complete, NAs are not
 # allowed, but this is a quick fix
 
-# second order model for forst hardiness
+# first order model for forst hardiness
 # after Leinone et al. 1995 and simplified by
 # Hanninen and Kramer 2007
 # literature values of the
@@ -47,32 +47,24 @@ scaling_factors <- df %>%
 df <- left_join(df, scaling_factors)
 
 # exploratory plot
-p <- ggplot(df) +
-  geom_line(
-    aes(
-      date,
-      gpp_mod
-    ),
-    colour = "red"
-  ) +
-  geom_line(
-    aes(
-      date,
-      gpp_mod * scaling_factor
-    ),
-    colour = "blue"
-  ) +
-  geom_line(
-    aes(
-      date,
-      gpp
-    )
-  ) +
-  labs(
-    x = "",
-    y = "GPP"
-  ) +
-  facet_grid(sitename ~ .) +
-  theme_minimal()
+site_names<-unique(df$sitename)
+p_all<-c()
+for(i in 1:length(site_names)){
+  site_run<-site_names[i]
+  df_run<-df %>% filter(sitename==site_run)
+  label_x<-min(df_run$date)+91
+  label_y<-round(max(df_run$gpp)+1,0)
+  p <- ggplot(df_run) +
+    geom_point(aes(date,gpp,col="obs"),size=2) +
+    geom_line(aes(date,gpp_mod,col="ori-mod")) +
+    geom_line(aes(date,gpp_mod * scaling_factor,col="cal-mod")) +
+    labs(x = "",y = "GPP") +
+    # facet_grid(sitename ~ .) +
+    scale_color_manual(values = c("ori-mod"="red","cal-mod"="steelblue2","obs"="grey"))+
+    annotate(geom = "text",x=label_x,y=label_y,label=site_run)+
+    theme_minimal()
+  p_all[[i]]<-p
+}
+names(p_all)<-site_names
 
-ggsave("~/Desktop/time_series.pdf", height = 48, width = 8)
+# ggsave("~/Desktop/time_series.pdf", height = 48, width = 8)

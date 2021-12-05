@@ -1,3 +1,5 @@
+#refer Koen's blog for the optimization process:
+#https://khufkens.com/2016/10/02/paramater-estimation-in-r-a-simple-stomatal-conductance-model-example/
 # run a small example of the frost hardiness
 # function
 
@@ -78,4 +80,40 @@ optim_par <- GenSA::GenSA(
   lower = lower,
   upper = upper,
   control = list(max.call=100))$par
+
+##compare the unoptimated and optimated parameters:
+#a. using the default par
+scaling_factors <- df %>%
+  group_by(sitename, year) %>%
+  do({
+    scaling_factor <- frost_hardiness(.$temp,par)
+    data.frame(
+      sitename = .$sitename,
+      date = .$date,
+      scaling_factor_default = scaling_factor
+    )
+  })
+df <- left_join(df, scaling_factors)
+#b. using the optimilized par
+scaling_factors <- df %>%
+  group_by(sitename, year) %>%
+  do({
+    scaling_factor <- frost_hardiness(.$temp,optim_par)
+    data.frame(
+      sitename = .$sitename,
+      date = .$date,
+      scaling_factor_optim = scaling_factor
+    )
+  })
+df <- left_join(df, scaling_factors)
+
+
+# exploratory plot
+p <- ggplot(df) +
+  geom_line(aes(date,gpp_mod,col="ori model gpp")) +
+  geom_line(aes(date,gpp_mod * scaling_factor_default,col="default-par model gpp")) +
+  geom_line(aes(date,gpp_mod * scaling_factor_optim,col="optim-par model gpp"))+
+  geom_point(aes(date,gpp,col="obs gpp")) +
+  labs(x = "",y = "GPP",title = "US-NR1") +
+  theme_minimal()
 

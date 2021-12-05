@@ -16,7 +16,7 @@ df <- readRDS("data/model_data.rds") %>%
     date > "2012-01-01"
   )
 
-# second order model for forst hardiness
+# second order model for forst hardiness -->#add by YP:should be the first order model
 # after Leinone et al. 1995 and simplified by
 # Hanninen and Kramer 2007
 # literature values of the
@@ -65,7 +65,7 @@ p <- ggplot(df) +
     ),
     colour = "blue"
   ) +
-  geom_line(
+  geom_point(
     aes(
       date,
       gpp
