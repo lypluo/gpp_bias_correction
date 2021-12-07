@@ -5,10 +5,10 @@ date: "05/12/2021"
 output: html_document
 ---
 
-# compare the p-model modelled gpp from different source-->since there seems some different pattern between gpp_obs and gpp_model in Stocker et al., 2020 and current results
+## compare the p-model modelled gpp from different source-->since there seems some different pattern between gpp_obs and gpp_model in Stocker et al., 2020 and current results
 
 ## r set up
-```{r}
+```{r message = FALSE, warning = FALSE}
 library(tidyverse)
 library(lubridate)
 source("../R/frost_hardiness.R")
@@ -16,7 +16,7 @@ source("../R/model_hardening_byBeni.R")
 ```
 
 ## load the data 
-```{r}
+```{r message = FALSE, warning = FALSE}
 #load the data uploaded by Koen
 df_recent <- readRDS("../data/model_data.rds") %>%
   mutate(
@@ -33,7 +33,7 @@ df_Beni<-df_Beni %>%
 
 ## merge the modelled p-model gpp from different data source:
 
-```{r}
+```{r message = FALSE, warning = FALSE}
 df_recent<-df_recent %>%
   mutate(year=as.numeric(year)) 
   
@@ -47,21 +47,26 @@ df_merge<-left_join(df_recent,df_Beni,by = c("sitename", "date", "year")) %>%
 
 ```
 
-# comparison
-## (1) comparing the observation gpp and modelled data from different datasets:
+## comparison
+
+## 1. comparing the observation gpp and modelled data from different datasets:
+```{r include=FALSE,echo = FALSE,message = FALSE, warning = FALSE}
 ## evaluation using Beni's function:
-```{r}
 devtools::load_all("D:/Github/rbeni/")
 library(rbeni) #-->make the evaluation plot
 library(cowplot)
 library(grid)
+```
 
-#1) scatter plots to compare the observation gpp from different sources-->no differences for obs gpp
+1) scatter plots to compare the observation gpp from different sources-->no differences for obs gpp
+```{r message = FALSE, warning = FALSE}
 gpp_modobs_comp_gpp_obs<-df_merge %>%
   analyse_modobs2("gpp_obs_recent", "gpp_obs_old", type = "hex")
 print(gpp_modobs_comp_gpp_obs$gg)
+```
 
-#2) scatter plots to compare the model gpp from different sources
+2) scatter plots to compare the model gpp from different sources
+```{r echo = FALSE,message = FALSE, warning = FALSE,fig.height=8,fig.width=16}
 gpp_modobs_comp_gpp_mod1<-df_merge %>%
   analyse_modobs2("gpp_mod_recent", "gpp_mod_FULL", type = "hex")
 # print(gpp_modobs_comp_gpp_mod1$gg)
@@ -82,10 +87,11 @@ labels = "auto",ncol =3,label_size = 12,align = "hv")
 plot(evaulation_merge_plot)
 ```
 
-## (2) comparing the gpp in different climat zones-->also add the gpp using the optimized parameters
+## 2. comparing the gpp in different climat zones-->also add the gpp using the optimized parameters
 
-## a. load the optimal parameters obtained from Koen's method and Beni's method:
-```{r}
+ 1). load the optimal parameters obtained from Koen's method and Beni's method:
+
+```{r message = FALSE, warning = FALSE}
 load("../data/parameters/optim_par_run100_koen.rds")
 optim_par_Koen<-optim_par;rm(optim_par)
 
@@ -93,10 +99,10 @@ load("../data/parameters/optim_par_run100_beni.rds")
 optim_par_Beni<-optim_par;rm(optim_par)
 ```
 
-## compare the performance by comparing the observation gpp and modelled gpp:
+2). compare the performance by comparing the observation gpp and modelled gpp:
+- prepare the compared data
 
-### prepare the compared data
-```{r}
+```{r echo = FALSE,message = FALSE, warning = FALSE}
 #a. using the optimilized parameter from Koen's method:
 scaling_factors <- df_merge %>%
   group_by(sitename, year) %>%
@@ -121,20 +127,11 @@ scaling_factors <- df_merge %>%
     )
   })
 df_merge <- left_join(df_merge, scaling_factors)
-
 ```
 
-### model evaluation:
-
--scatter comparision plots
-```{r}
-#evaluation using Beni's function:
-devtools::load_all("D:/Github/rbeni/")
-library(rbeni) #-->make the evaluation plot
-library(cowplot)
-library(grid)
-
-##(2)make the evaluation plot
+- model evaluation: scatter comparision plots
+make the evaluation plot
+```{r echo = FALSE,message = FALSE, warning = FALSE}
 #-----
 #a. prepare the data
 #-----
@@ -193,7 +190,6 @@ df_season_climate %>%
   facet_wrap(~kg_code_northsouth)
 
 # ggsave("./fig/meanseasonalcycle_by_climate_cal.pdf", width = 9, height = 6)
-
 
 ```
 
