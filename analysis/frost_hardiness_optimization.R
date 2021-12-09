@@ -2,7 +2,6 @@
 #https://khufkens.com/2016/10/02/paramater-estimation-in-r-a-simple-stomatal-conductance-model-example/
 # run a small example of the frost hardiness
 # function
-
 library(tidyverse)
 library(GenSA)
 source("R/frost_hardiness.R")
@@ -55,7 +54,7 @@ cost <- function(
       )
     })
 
-  df <- left_join(df, scaling_factor)
+  df <- left_join(data, scaling_factor)
 
   rmse <- sqrt(
     sum(
@@ -64,15 +63,17 @@ cost <- function(
 
   # This visualizes the process,
   # comment out when running for real
-  plot(df$gpp, type = 'l')
-  lines(df$gpp_mod, col = "red")
-  lines(df$gpp_mod * df$scaling_factor, col = "blue")
-  Sys.sleep(0.1)
+  # plot(df$gpp, type = 'l')
+  # lines(df$gpp_mod, col = "red")
+  # lines(df$gpp_mod * df$scaling_factor, col = "blue")
+  # Sys.sleep(0.1)
 
   return(rmse)
 }
 
 # optimize stuff
+library(tictoc)
+tic("start to parameterize")
 optim_par <- GenSA::GenSA(
   par = par,
   fn = cost,
@@ -80,7 +81,8 @@ optim_par <- GenSA::GenSA(
   lower = lower,
   upper = upper,
   control = list(max.call=100))$par
-
+print("finish parameterization")
+toc()
 ##compare the unoptimated and optimated parameters:
 #a. using the default par
 scaling_factors <- df %>%

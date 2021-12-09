@@ -1,0 +1,11 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/845538/a31f0583688645e1bf5e9a50cced8163
+bundleId: https://api.rpubs.com/api/v1/document/845538/a31f0583688645e1bf5e9a50cced8163
+url: http://rpubs.com/yluo_BGC/845538
+when: 1639052211.23582
+lastSyncTime: 1639052211.23582

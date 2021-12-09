@@ -52,7 +52,7 @@ cost <- function(
       )
     })
 
-  df <- left_join(df, scaling_factor)
+  df <- left_join(data, scaling_factor)
 
   rmse <- sqrt(
     sum(
@@ -70,6 +70,8 @@ cost <- function(
 }
 
 # optimize stuff
+library(tictoc)#-->record the parameterization time
+tic("start to parameterize")
 optim_par <- GenSA::GenSA(
   par = par,
   fn = cost,
@@ -77,9 +79,11 @@ optim_par <- GenSA::GenSA(
   lower = lower,
   upper = upper,
   control = list(max.call=100))$par
-
+print("finish parameterization")
+toc()
 #save the optimized data
 save(optim_par,file = paste0("./data/parameters/","optim_par_run100_beni.rds"))
+
 #----------------------------
 ##(3)compare the results using defaulted and optimated parameters-->site by site
 #----------------------------
@@ -95,6 +99,7 @@ scaling_factors <- df %>%
     )
   })
 df <- left_join(df, scaling_factors)
+
 #b. using the optimilized par
 scaling_factors <- df %>%
   group_by(sitename, year) %>%
@@ -107,7 +112,6 @@ scaling_factors <- df %>%
     )
   })
 df <- left_join(df, scaling_factors)
-
 
 # exploratory plot
 site_names<-unique(df$sitename)
