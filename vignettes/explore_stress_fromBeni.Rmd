@@ -109,18 +109,28 @@ doydf %>%
 $$
 h = \frac{1}{1 + e^{a + bx}}
 $$
+add by YP
+$$
+h = \frac{1}{1 + e^{-b(x-a)}}  
+$$
 
 ```{r}
 f_hardening <- function(temp, param){
   
-  xx <- (-1) * temp # * ppfd
-  xx <- param["b"] * xx + param["a"]
+  # xx <- (-1) * temp # * ppfd
+  # xx <- param["b"] * xx + param["a"]
+  xx<- temp
+  xx <- (-1)*param["b"] * (param["c"]*xx - param["a"])
   yy <- 1 / (1 + exp(xx))
   return(yy)  
 }
 ggplot() +
-  geom_function(fun = f_hardening, args = list(param = c("a" = 0, "b" = 0.5))) +
-  xlim(-10, 30)
+  geom_function(fun = f_hardening, args = list(param = c("a" = -10, "b" = 0.15,"c"=0.5)),col="black") +
+  geom_function(fun = f_hardening, args = list(param = c("a" = -10, "b" = 0.15,"c"=0.7)),col="tomato") +
+  geom_function(fun = f_hardening, args = list(param = c("a" = -10, "b" = 0.15,"c"=1)),col="orange") +
+  geom_function(fun = f_hardening, args = list(param = c("a" = -10, "b" = 0.15,"c"=2)),col="red") +
+  geom_function(fun = f_hardening, args = list(param = c("a" = -10, "b" = 0.15,"c"=5)),col="blue") +
+  xlim(-50, 30)
 ```
 
 ## Dehardening function
@@ -129,14 +139,18 @@ Has the same functional form as the hardening function, but uses cumulative degr
 ```{r}
 f_dehardening <- function(temp, param){
   
-  xx <- (-1) * temp # * ppfd
-  xx <- param["b"] * (xx - param["a"])
+  # xx <- (-1) * temp # * ppfd
+  # xx <- param["b"] * (xx - param["a"])
+  xx<-temp
+  xx<-(-1)*param["b"] * (xx - param["a"])
   yy <- 1 / (1 + exp(xx))
   return(yy)  
 }
 ggplot() +
-  geom_function(fun = f_dehardening, args = list(param = c("a" = -50, "b" = 0.1))) +
-  xlim(-10, 100)
+  geom_function(fun = f_dehardening, args = list(param = c("a" = 10, "b" = 0.1)),col="black") +
+  geom_function(fun = f_dehardening, args = list(param = c("a" = 10, "b" = 0.2)),col="red") +
+  geom_function(fun = f_dehardening, args = list(param = c("a" = 10, "b" = 1)),col="orange") +
+  xlim(-10, 200)
 ```
 
 

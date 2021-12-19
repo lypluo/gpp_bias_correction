@@ -1,0 +1,424 @@
+---
+title: "explore if the parameterization works well for different PFTs"
+author: "Yunpeng"
+date: "17/12/2021"
+output: html_document
+---
+In this script,using updated Beni's stress function(I also embedded the day length into function)
+
+**here test ENF**
+
+-for different PFTs:
+
+
+### r setup 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(GenSA)
+source("../R/model_hardening_byBeni.R")
+source("../R/model_hardening_byBeni_addDL.R")
+```
+
+### (1) read data
+```{r message=FALSE,warning=FALSE}
+#load the data uploaded by Koen
+df_recent <- readRDS("../data/model_data.rds") %>%
+  mutate(
+    year = format(date, "%Y")
+  ) %>%
+  na.omit()
+
+#load the data Beni sent me before:
+df_old<-read.csv(file=paste0("../data/","ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv"))
+df_old<-df_old %>%
+  mutate(date=lubridate::mdy(date),
+         year=lubridate::year(date)) %>%
+  na.omit(gpp_obs,)
+```
+
+add day length
+```{r message=FALSE,warning=FALSE}
+#calculate the daylength for each sites
+library(geosphere) #calculate the day length
+library(sirad)  #calculate the day of the year
+library(lubridate)
+library(dplyr)
+#load the lat and long of the example site:
+df_sites_modis_era <-read_rds(paste0("../data/df_sites_modis_era.csv"))
+#-------
+#adding DL for df_recent datasets
+#-------
+sites<-unique(df_recent$sitename)
+df_recent_temp<-c()
+for(i in 1:length(sites)){
+  df.temp<-df_recent%>%filter(sitename==sites[i])
+  siteinfo<-df_sites_modis_era %>% filter(sitename==sites[i])
+  #
+  df.temp$doy<-dayOfYear(df.temp$date)
+  df.temp$DL<-daylength(siteinfo$lat,df.temp$doy)
+  df_recent_temp<-rbind(df_recent_temp,df.temp)
+}
+#
+df_recent<-df_recent_temp
+
+```
+
+### (2) retreive the optimized parameter for the selected sites
+
+```{r echo=FALSE, warning= FALSE}
+# set initial value
+par_old<- c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1)
+par_new1 <- c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1)
+par_new2 <- c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1)
+par_new3 <- c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1,"f"=6)
+
+#set the parameter variation ranges
+lower_old=c(-50,0,0,0,0)
+upper_old=c(50,20,100,20,10)
+#
+lower_new1=c(-50,0,0,0,0)
+upper_new1=c(50,20,500,20,10)
+#
+lower_new2=c(-50,0,0,0,0)
+upper_new2=c(50,20,500,20,10)
+#
+lower_new3=c(-50,0,0,0,0,0)
+upper_new3=c(50,20,500,20,10,24)
+
+# run model and compare to true values
+# returns the RMSE
+# source the cost functions
+source(paste0("../R/cost_fun.R"))
+```
+
+### optimize for each PFTs
+
+```{r  echo=FALSE,warning= FALSE}
+#first load the PFTs information:
+#load the modis data-->tidy from Beni
+df_sites_modis_era <- read_rds(paste0("../data/df_sites_modis_era.csv"))
+#
+df_merge<-df_recent %>%
+left_join(
+    df_sites_modis_era,
+    by = "sitename"
+  ) 
+#main PFTs
+# PFTs<-unique(df_merge$classid)
+#first target ENF:
+PFTs<-"ENF"
+### optimize for each PFT
+library(tictoc)#-->record the parameterization time
+# tic("start to parameterize")
+# par_PFTs<-c()
+# for(i in 1:length(PFTs)){
+df_sel<-df_merge %>%
+    dplyr::filter(classid==PFTs)
+
+##1) for old model strcture
+tic("start to parameterize")
+optim_par_old <- GenSA::GenSA(
+  par = par_old,
+  fn = cost_old,
+  data = df_sel,
+  lower = lower_old,
+  upper = upper_old,
+  control = list(max.call=100))$par
+
+  # print(i)
+  # par_PFTs[[i]]<-optim_par
+# }
+print("finish parameterization")
+toc()
+# names(par_PFTs)<-PFTs
+# print(par_PFTs)
+#save the optimized data
+save(optim_par_old,file = paste0("../data/parameters/addNL_test/","optim_par_oldmod_run100_beni_addNL_ENF.rds"))
+
+##2) for new model strcture--new model1
+tic("start to parameterize")
+optim_par_new1 <- GenSA::GenSA(
+  par = par_new1,
+  fn = cost_new1,
+  data = df_sel,
+  lower = lower_new1,
+  upper = upper_new1,
+  control = list(max.call=100))$par
+
+print("finish parameterization")
+toc()
+#save the optimized data
+save(optim_par_new1,file = paste0("../data/parameters/addNL_test/","optim_par_newmod1_run100_beni_addNL_ENF.rds"))
+
+##3) for new model strcture--new model2
+tic("start to parameterize")
+optim_par_new2 <- GenSA::GenSA(
+  par = par_new2,
+  fn = cost_new2,
+  data = df_sel,
+  lower = lower_new2,
+  upper = upper_new2,
+  control = list(max.call=100))$par
+
+print("finish parameterization")
+toc()
+#save the optimized data
+save(optim_par_new2,file = paste0("../data/parameters/addNL_test/","optim_par_newmod2_run100_beni_addNL_ENF.rds"))
+
+##4) for new model strcture--new model3
+tic("start to parameterize")
+optim_par_new3 <- GenSA::GenSA(
+  par = par_new3,
+  fn = cost_new3,
+  data = df_sel,
+  lower = lower_new3,
+  upper = upper_new3,
+  control = list(max.call=100))$par
+
+print("finish parameterization")
+toc()
+#save the optimized data
+save(optim_par_new3,file = paste0("../data/parameters/addNL_test/","optim_par_newmod3_run100_beni_addNL_ENF.rds"))
+
+```
+
+### compare the gpp_obs, ori modelled gpp, and gpp modelled using optimated parameters
+
+print the optim parameters
+
+```{r message=FALSE,warning=FALSE}
+load(paste0("../data/parameters/addNL_test/","optim_par_oldmod_run100_beni_addNL_ENF.rds"))
+load(paste0("../data/parameters/addNL_test/","optim_par_newmod1_run100_beni_addNL_ENF.rds"))
+load(paste0("../data/parameters/addNL_test/","optim_par_newmod2_run100_beni_addNL_ENF.rds"))
+load(paste0("../data/parameters/addNL_test/","optim_par_newmod3_run100_beni_addNL_ENF.rds"))
+
+#include parameter-->include=FALSE-->Hide output results
+print(optim_par_old)
+print(optim_par_new1)
+print(optim_par_new2)
+print(optim_par_new3)
+```
+
+```{r echo=FALSE，message=FALSE,warning=FALSE,include=FALSE}
+#--------------------
+#(1) get the stress function value for each site and merge each sites datasets
+#--------------------
+# using the optimilized par
+df_final<-c()
+# for (i in 1:length(PFTs)) {
+  df_sel<-df_merge %>%
+    dplyr::filter(classid==PFTs)
+  
+##stress factors for differenet model structure
+  scaling_factors <- df_sel %>%
+  # group_by(sitename, year) %>%
+  do({
+    scaling_factor_old <- model_hardening(.,optim_par_old)
+    scaling_factor_new1 <- model_hardening_new1(.,optim_par_new1)
+    scaling_factor_new2 <- model_hardening_new2(.,optim_par_new2)
+    scaling_factor_new3 <- model_hardening_new3(.,optim_par_new3)
+    data.frame(
+      sitename = .$sitename,
+      date = .$date,
+      scaling_factor_optim_oldmod = scaling_factor_old,
+      scaling_factor_optim_newmod1 = scaling_factor_new1,
+      scaling_factor_optim_newmod2 = scaling_factor_new2,
+      scaling_factor_optim_newmod3 = scaling_factor_new3
+    )
+  })
+  df_sel <- left_join(df_sel, scaling_factors)
+  
+  #merge different sites:
+  df_final<-df_sel
+# }
+
+#-------------------
+#(2) calculate the simple stats for PFTs
+#-------------------
+#!!first need to merge the modelled gpp from different sources:
+df_final$year<-lubridate::year(df_final$date)
+df_merge_new<-left_join(df_final,df_old,by = c("sitename", "date", "year")) %>%
+  mutate(gpp_obs_recent=gpp,
+         gpp_obs_old=gpp_obs,
+         gpp_mod_FULL_ori=gpp_mod_FULL,
+         gpp_mod_recent_ori=gpp_mod,
+         gpp_mod_recent_optim_oldmod=gpp_mod*scaling_factor_optim_oldmod,
+         gpp_mod_recent_optim_newmod1=gpp_mod*scaling_factor_optim_newmod1,
+         gpp_mod_recent_optim_newmod2=gpp_mod*scaling_factor_optim_newmod2,
+         gpp_mod_recent_optim_newmod3=gpp_mod*scaling_factor_optim_newmod3,
+         gpp=NULL,
+         gpp_obs=NULL,
+         gpp_mod=NULL)
+
+#
+library(sirad)
+df_stats<-c()
+# for (i in 1:length(PFTs)){
+  df_each<-df_merge_new %>%
+    dplyr::filter(classid==PFTs)  #PFTs[i]-->PFTs
+  #
+  ori_model_evas<-modeval(df_each$gpp_mod_FULL_ori,df_each$gpp_obs_old,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  recent_model_evas<-modeval(df_each$gpp_mod_recent_ori,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  recent_model_optim_oldmod_evas<-modeval(df_each$gpp_mod_recent_optim_oldmod,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  recent_model_optim_newmod1_evas<-modeval(df_each$gpp_mod_recent_optim_newmod1,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  recent_model_optim_newmod2_evas<-modeval(df_each$gpp_mod_recent_optim_newmod2,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  recent_model_optim_newmod3_evas<-modeval(df_each$gpp_mod_recent_optim_newmod3,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
+  #
+  stats_evals<-rbind(ori_model_evas,recent_model_evas,recent_model_optim_oldmod_evas,
+                     recent_model_optim_newmod1_evas,recent_model_optim_newmod2_evas,
+                     recent_model_optim_newmod3_evas)
+  # stats_evals
+  #merge different sites
+df_stats<-stats_evals  #df_stats[[i]]-->df_stats
+# }
+# names(df_stats)<-PFTs
+print(df_stats)
+```
+
+### make evaluation plots
+
+(1) For General plots
+```{r echo=FALSE,warning=FALSE,message=FALSE,include=FALSE}
+#evaluation using Beni's function:
+devtools::load_all("D:/Github/rbeni/")
+library(rbeni) #-->make the evaluation plot
+library(cowplot)
+library(grid)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#--------------------------
+#modelled and observed gpp:scatter plots
+#-------------------------
+plot_modobs_general<-c()
+df_modobs<-c()
+for(i in 1:length(PFTs)){
+  #
+  df_modobs_each<-df_merge_new %>%
+  filter(classid==PFTs[i]) %>%
+  select(sitename,date,classid,gpp_obs_recent,gpp_mod_FULL_ori,gpp_mod_recent_ori,
+         gpp_mod_recent_optim_oldmod,gpp_mod_recent_optim_newmod1,
+         gpp_mod_recent_optim_newmod2,gpp_mod_recent_optim_newmod3) %>%
+  mutate(gpp_obs=gpp_obs_recent,
+         gpp_mod_old_ori=gpp_mod_FULL_ori,
+         gpp_mod_recent_ori=gpp_mod_recent_ori,
+         gpp_mod_recent_optim_oldmod=gpp_mod_recent_optim_oldmod,
+         gpp_mod_recent_optim_newmod1=gpp_mod_recent_optim_newmod1,
+         gpp_mod_recent_optim_newmod2=gpp_mod_recent_optim_newmod2,
+         gpp_mod_recent_optim_newmod3=gpp_mod_recent_optim_newmod3
+         ) %>%
+  mutate(gpp_obs_recent=NULL,
+         gpp_mod_FULL_ori=NULL)
+#
+df_modobs<-rbind(df_modobs,df_modobs_each)
+
+#scatter plots to compare the model and observation gpp
+gpp_modobs_comp_old_ori<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_old_ori", "gpp_obs", type = "heat")
+gpp_modobs_comp_recent_ori<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_recent_ori", "gpp_obs", type = "heat")
+gpp_modobs_comp_recent_optim_oldmod<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_recent_optim_oldmod", "gpp_obs", type = "heat")
+gpp_modobs_comp_recent_optim_newmod1<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_recent_optim_newmod1", "gpp_obs", type = "heat")
+gpp_modobs_comp_recent_optim_newmod2<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_recent_optim_newmod2", "gpp_obs", type = "heat")
+gpp_modobs_comp_recent_optim_newmod3<-df_modobs_each %>%
+  analyse_modobs2("gpp_mod_recent_optim_newmod3", "gpp_obs", type = "heat")
+
+
+# add the site-name:
+gpp_modobs_comp_old_ori$gg<-gpp_modobs_comp_old_ori$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+gpp_modobs_comp_recent_ori$gg<-gpp_modobs_comp_recent_ori$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+gpp_modobs_comp_recent_optim_oldmod$gg<-gpp_modobs_comp_recent_optim_oldmod$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+gpp_modobs_comp_recent_optim_newmod1$gg<-gpp_modobs_comp_recent_optim_newmod1$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+gpp_modobs_comp_recent_optim_newmod2$gg<-gpp_modobs_comp_recent_optim_newmod2$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+gpp_modobs_comp_recent_optim_newmod3$gg<-gpp_modobs_comp_recent_optim_newmod3$gg+
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
+
+#merge two plots
+evaulation_merge_plot<-plot_grid(gpp_modobs_comp_old_ori$gg,gpp_modobs_comp_recent_ori$gg,gpp_modobs_comp_recent_optim_oldmod$gg,gpp_modobs_comp_recent_optim_newmod1$gg,gpp_modobs_comp_recent_optim_newmod2$gg,gpp_modobs_comp_recent_optim_newmod3$gg,
+    widths=15,heights=10,
+labels = "auto",ncol =2,nrow = 3,label_size = 12,align = "hv")
+# plot(evaulation_merge_plot)
+
+#put all the plots together:
+plot_modobs_general[[i]]<-evaulation_merge_plot
+}
+names(plot_modobs_general)<-PFTs
+
+#print the plot
+plot_modobs_general
+```
+
+(2) For Seasonality
+
+a. Seasonal course for different PFTs:
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+
+#plotting:
+  season_plot<-df_modobs %>%
+  mutate(doy = lubridate::yday(date)) %>%
+  group_by(classid, doy) %>%
+  summarise(obs = mean(gpp_obs, na.rm = TRUE),
+            mod_old_ori=mean(gpp_mod_old_ori, na.rm = TRUE),
+            mod_recent_ori=mean(gpp_mod_recent_ori, na.rm = TRUE),
+            mod_recent_optim_oldmod=mean(gpp_mod_recent_optim_oldmod,na.rm = TRUE),
+            mod_recent_optim_newmod1=mean(gpp_mod_recent_optim_newmod1,na.rm = TRUE),
+            mod_recent_optim_newmod2=mean(gpp_mod_recent_optim_newmod2,na.rm = TRUE),
+            mod_recent_optim_newmod3=mean(gpp_mod_recent_optim_newmod3,na.rm = TRUE)) %>%
+  pivot_longer(c(obs,mod_old_ori,mod_recent_ori,mod_recent_optim_oldmod,
+            mod_recent_optim_newmod1,mod_recent_optim_newmod2,mod_recent_optim_newmod3), names_to = "Source", values_to = "gpp") %>%
+  ggplot(aes(doy, gpp, color = Source)) +
+  geom_line() +
+  scale_color_manual(values = c("mod_old_ori" = "green","mod_recent_ori"="steelblue2","mod_recent_optim_oldmod" = "blue","mod_recent_optim_newmod1" = "tomato","mod_recent_optim_newmod2" = "red3","mod_recent_optim_newmod3" = "orange","obs" = "black"),
+  labels = c("Old P-model","Recent Ori P-model", "Recent Optim old P-model",
+             "Recent Optim new1 P-model","Recent Optim new2 P-model","Recent Optim new3 P-model","Obs.")) +
+  labs(y = expression( paste("GPP (g C m"^-2, " d"^-1, ")" ) ),
+       x = "Day of year") +
+  annotate(geom="text",x=200,y=2,label="")+
+  facet_wrap(~classid)
+  
+#print the plot
+season_plot
+```
+
+b. Seasonal course for each sites in different PFTs:
+ 
+ - for each site in ENF
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Seasonal course for each sites in different PFTs:
+# - for ENF
+df_modobs %>%
+  filter(classid=="ENF") %>%
+  mutate(doy = lubridate::yday(date)) %>%
+  group_by(sitename, doy) %>%
+  summarise(obs = mean(gpp_obs, na.rm = TRUE),
+            mod_old_ori=mean(gpp_mod_old_ori, na.rm = TRUE),
+            mod_recent_ori=mean(gpp_mod_recent_ori, na.rm = TRUE),
+            mod_recent_optim_oldmod=mean(gpp_mod_recent_optim_oldmod,na.rm = TRUE),
+            mod_recent_optim_newmod1=mean(gpp_mod_recent_optim_newmod1,na.rm = TRUE),
+            mod_recent_optim_newmod2=mean(gpp_mod_recent_optim_newmod2,na.rm = TRUE),
+            mod_recent_optim_newmod3=mean(gpp_mod_recent_optim_newmod3,na.rm = TRUE)) %>%
+  pivot_longer(c(obs,mod_old_ori,mod_recent_ori,mod_recent_optim_oldmod,
+            mod_recent_optim_newmod1,mod_recent_optim_newmod2,mod_recent_optim_newmod3), names_to = "Source", values_to = "gpp") %>%
+  ggplot(aes(doy, gpp, color = Source)) +
+  geom_line() +
+  scale_color_manual(values = c("mod_old_ori" = "green","mod_recent_ori"="steelblue2","mod_recent_optim_oldmod" = "blue","mod_recent_optim_newmod1" = "tomato","mod_recent_optim_newmod2" = "red3","mod_recent_optim_newmod3" = "orange","obs" = "black"),
+  labels = c("Old P-model","Recent Ori P-model", "Recent Optim old P-model",
+             "Recent Optim new1 P-model","Recent Optim new2 P-model","Recent Optim new3 P-model","Obs.")) +
+  labs(y = expression( paste("GPP (g C m"^-2, " d"^-1, ")" ) ),
+       x = "Day of year") +
+  annotate(geom="text",x=200,y=2,label="")+
+  facet_wrap(~sitename)
+
+```
