@@ -40,7 +40,7 @@ df_old<-df_old %>%
 ```
 
 add day length
-```{r message=FALSE,warning=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 #calculate the daylength for each sites
 library(geosphere) #calculate the day length
 library(sirad)  #calculate the day of the year
@@ -119,69 +119,69 @@ df_sel<-df_merge %>%
     dplyr::filter(classid==PFTs)
 
 ##1) for old model strcture
-tic("start to parameterize")
-optim_par_old <- GenSA::GenSA(
-  par = par_old,
-  fn = cost_old,
-  data = df_sel,
-  lower = lower_old,
-  upper = upper_old,
-  control = list(max.call=100))$par
-
-  # print(i)
-  # par_PFTs[[i]]<-optim_par
-# }
-print("finish parameterization")
-toc()
-# names(par_PFTs)<-PFTs
-# print(par_PFTs)
-#save the optimized data
-save(optim_par_old,file = paste0("../data/parameters/addNL_test/","optim_par_oldmod_run100_beni_addNL_DBF.rds"))
-
-##2) for new model strcture--new model1
-tic("start to parameterize")
-optim_par_new1 <- GenSA::GenSA(
-  par = par_new1,
-  fn = cost_new1,
-  data = df_sel,
-  lower = lower_new1,
-  upper = upper_new1,
-  control = list(max.call=100))$par
-
-print("finish parameterization")
-toc()
-#save the optimized data
-save(optim_par_new1,file = paste0("../data/parameters/addNL_test/","optim_par_newmod1_run100_beni_addNL_DBF.rds"))
-
-##3) for new model strcture--new model2
-tic("start to parameterize")
-optim_par_new2 <- GenSA::GenSA(
-  par = par_new2,
-  fn = cost_new2,
-  data = df_sel,
-  lower = lower_new2,
-  upper = upper_new2,
-  control = list(max.call=100))$par
-
-print("finish parameterization")
-toc()
-#save the optimized data
-save(optim_par_new2,file = paste0("../data/parameters/addNL_test/","optim_par_newmod2_run100_beni_addNL_DBF.rds"))
-
-##4) for new model strcture--new model3
-tic("start to parameterize")
-optim_par_new3 <- GenSA::GenSA(
-  par = par_new3,
-  fn = cost_new3,
-  data = df_sel,
-  lower = lower_new3,
-  upper = upper_new3,
-  control = list(max.call=100))$par
-
-print("finish parameterization")
-toc()
-#save the optimized data
-save(optim_par_new3,file = paste0("../data/parameters/addNL_test/","optim_par_newmod3_run100_beni_addNL_DBF.rds"))
+# tic("start to parameterize")
+# optim_par_old <- GenSA::GenSA(
+#   par = par_old,
+#   fn = cost_old,
+#   data = df_sel,
+#   lower = lower_old,
+#   upper = upper_old,
+#   control = list(max.call=100))$par
+# 
+#   # print(i)
+#   # par_PFTs[[i]]<-optim_par
+# # }
+# print("finish parameterization")
+# toc()
+# # names(par_PFTs)<-PFTs
+# # print(par_PFTs)
+# #save the optimized data
+# save(optim_par_old,file = paste0("../data/parameters/addNL_test/","optim_par_oldmod_run100_beni_addNL_DBF.rds"))
+# 
+# ##2) for new model strcture--new model1
+# tic("start to parameterize")
+# optim_par_new1 <- GenSA::GenSA(
+#   par = par_new1,
+#   fn = cost_new1,
+#   data = df_sel,
+#   lower = lower_new1,
+#   upper = upper_new1,
+#   control = list(max.call=100))$par
+# 
+# print("finish parameterization")
+# toc()
+# #save the optimized data
+# save(optim_par_new1,file = paste0("../data/parameters/addNL_test/","optim_par_newmod1_run100_beni_addNL_DBF.rds"))
+# 
+# ##3) for new model strcture--new model2
+# tic("start to parameterize")
+# optim_par_new2 <- GenSA::GenSA(
+#   par = par_new2,
+#   fn = cost_new2,
+#   data = df_sel,
+#   lower = lower_new2,
+#   upper = upper_new2,
+#   control = list(max.call=100))$par
+# 
+# print("finish parameterization")
+# toc()
+# #save the optimized data
+# save(optim_par_new2,file = paste0("../data/parameters/addNL_test/","optim_par_newmod2_run100_beni_addNL_DBF.rds"))
+# 
+# ##4) for new model strcture--new model3
+# tic("start to parameterize")
+# optim_par_new3 <- GenSA::GenSA(
+#   par = par_new3,
+#   fn = cost_new3,
+#   data = df_sel,
+#   lower = lower_new3,
+#   upper = upper_new3,
+#   control = list(max.call=100))$par
+# 
+# print("finish parameterization")
+# toc()
+# #save the optimized data
+# save(optim_par_new3,file = paste0("../data/parameters/addNL_test/","optim_par_newmod3_run100_beni_addNL_DBF.rds"))
 
 ```
 
@@ -196,10 +196,10 @@ load(paste0("../data/parameters/addNL_test/","optim_par_newmod2_run100_beni_addN
 load(paste0("../data/parameters/addNL_test/","optim_par_newmod3_run100_beni_addNL_DBF.rds"))
 
 #include parameter-->include=FALSE-->Hide output results
-print(optim_par_old)
-print(optim_par_new1)
-print(optim_par_new2)
-print(optim_par_new3)
+optim_par_old
+optim_par_new1
+optim_par_new2
+optim_par_new3
 ```
 
 ```{r echo=FALSE，message=FALSE,warning=FALSE,include=FALSE}
@@ -210,7 +210,7 @@ print(optim_par_new3)
 df_final<-c()
 # for (i in 1:length(PFTs)) {
   df_sel<-df_merge %>%
-    dplyr::filter(classid==PFTs[i])
+    dplyr::filter(classid==PFTs)
   
 ##stress factors for differenet model structure
   scaling_factors <- df_sel %>%
@@ -275,7 +275,7 @@ df_stats<-c()
 df_stats<-stats_evals  #df_stats[[i]]-->df_stats
 # }
 # names(df_stats)<-PFTs
-print(df_stats)
+df_stats
 ```
 
 ### make evaluation plots
@@ -287,6 +287,11 @@ devtools::load_all("D:/Github/rbeni/")
 library(rbeni) #-->make the evaluation plot
 library(cowplot)
 library(grid)
+```
+
+print general stats:
+```{r}
+df_stats
 ```
 
 ```{r echo=FALSE,warning=FALSE,message=FALSE}

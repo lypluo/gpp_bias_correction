@@ -44,7 +44,7 @@ cost <- function(
     # group_by(sitename) %>%
     do({
       scaling_factor <- frost_hardiness(
-        #.$temp,                  #update by YP: using the Tmin according to literature
+        #.$temp,        #update by YP: using the Tmin according to literature
         .$tmin,
         par
       )

@@ -10,13 +10,13 @@ cost_old <- function(data,par_old) {
                date = .$date,
                scaling_factor = scaling_factor)
     })
-  
+
   df <- left_join(data, scaling_factor)
   rmse <- sqrt(
     sum(
       (df$gpp - df$gpp_mod * df$scaling_factor)^2)
   )/nrow(df)
-  
+
   # This visualizes the process,
   # comment out when running for real
   # plot(df$gpp, type = 'p',ylim=c(0,12))
@@ -37,13 +37,13 @@ cost_new1 <- function(data,par_new1) {
                date = .$date,
                scaling_factor = scaling_factor)
     })
-  
+
   df <- left_join(data, scaling_factor)
   rmse <- sqrt(
     sum(
       (df$gpp - df$gpp_mod * df$scaling_factor)^2)
   )/nrow(df)
-  
+
   # This visualizes the process,
   # comment out when running for real
   # plot(df$gpp, type = 'p',ylim=c(0,12))
@@ -61,13 +61,13 @@ cost_new2 <- function(data,par_new2) {
                date = .$date,
                scaling_factor = scaling_factor)
     })
-  
+
   df <- left_join(data, scaling_factor)
   rmse <- sqrt(
     sum(
       (df$gpp - df$gpp_mod * df$scaling_factor)^2)
   )/nrow(df)
-  
+
   # This visualizes the process,
   # comment out when running for real
   # plot(df$gpp, type = 'p',ylim=c(0,12))
@@ -85,13 +85,38 @@ cost_new3 <- function(data,par_new3) {
                date = .$date,
                scaling_factor = scaling_factor)
     })
-  
+
   df <- left_join(data, scaling_factor)
   rmse <- sqrt(
     sum(
       (df$gpp - df$gpp_mod * df$scaling_factor)^2)
   )/nrow(df)
-  
+
+  # This visualizes the process,
+  # comment out when running for real
+  # plot(df$gpp, type = 'p',ylim=c(0,12))
+  # lines(df$gpp_mod, col = "red")
+  # lines(df$gpp_mod * df$scaling_factor, col = "blue",cex=1.2)
+  # Sys.sleep(0.1)
+  return(rmse)
+}
+
+#remove the parameter e
+cost_new4 <- function(data,par_new4) {
+  scaling_factor <- data %>%
+    # group_by(sitename) %>%
+    do({scaling_factor <- model_hardening_new4(.,par_new4)
+    data.frame(sitename = .$sitename,
+               date = .$date,
+               scaling_factor = scaling_factor)
+    })
+
+  df <- left_join(data, scaling_factor)
+  rmse <- sqrt(
+    sum(
+      (df$gpp - df$gpp_mod * df$scaling_factor)^2)
+  )/nrow(df)
+
   # This visualizes the process,
   # comment out when running for real
   # plot(df$gpp, type = 'p',ylim=c(0,12))
