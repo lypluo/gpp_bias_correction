@@ -1,12 +1,12 @@
 ---
-title: "explore if the parameterization works well for different Continents"
+title: "explore if the parameterization works well for different PFTs"
 author: "Yunpeng"
-date: "1/12/2022"
+date: "7/12/2021"
 output: html_document
 ---
-In this script,using Koen's stress function
+In this script,using Beni's stress function
 
--for different continents:NorthAmerica, Europe, East Asia(only two sites in Japan)
+-for different PFTs:
 
 
 ### r setup 
@@ -16,20 +16,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(GenSA)
-source("../R/frost_hardiness.R")
+base.path<-"D:/Github/gpp_bias_correction/"
+source(paste0(base.path,"R/","updated_R/model_hardening_byBeni_addbaseGDD.R"))
 ```
 
 ### (1) read data
 ```{r message=FALSE,warning=FALSE}
 #load the data uploaded by Koen
-df_recent <- readRDS("../data/model_data.rds") %>%
+df_recent <- readRDS(paste0(base.path,"data/model_data.rds")) %>%
   mutate(
     year = format(date, "%Y")
   ) %>%
   na.omit()
 
 #load the data Beni sent me before:
-df_old<-read.csv(file=paste0("../data/","ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv"))
+df_old<-read.csv(file=paste0(base.path,"data/","ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv"))
 df_old<-df_old %>%
   mutate(date=lubridate::mdy(date),
          year=lubridate::year(date)) %>%
@@ -40,10 +41,9 @@ df_old<-df_old %>%
 
 ```{r echo=FALSE, warning= FALSE}
 # set initial value
-par <- c(a = 1.5,b = -21.5,T8 = 11.3,t = 5,base_t = -25)
-
-lower=c(0,-100,-50,1, -100)
-upper=c(100,0,100,90, 0)
+par <- c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1,"k"=5)
+lower=c(-50,0,0,0,0,0)
+upper=c(50,20,100,20,10,10)
 
 # run model and compare to true values
 # returns the RMSE
@@ -55,8 +55,8 @@ cost <- function(
   scaling_factor <- data %>%
     # group_by(sitename) %>%
     do({
-      scaling_factor <-frost_hardiness(
-        .$tmin,
+      scaling_factor <- model_hardening(
+        .,
         par
       )
 
@@ -69,10 +69,12 @@ cost <- function(
 
   df <- left_join(data, scaling_factor)
 
-  rmse <- sqrt(
-    sum(
-      (df$gpp - df$gpp_mod * df$scaling_factor)^2)
-    )/nrow(df)
+  # rmse <- sqrt(
+  #   sum(
+  #     (df$gpp - df$gpp_mod * df$scaling_factor)^2)
+  #   )/nrow(df)
+  #mae:mean absolute error:
+  mae<-sum(abs(df$gpp - df$gpp_mod * df$scaling_factor))/nrow(df)
 
   # This visualizes the process,
   # comment out when running for real
@@ -81,43 +83,32 @@ cost <- function(
   # lines(df$gpp_mod * df$scaling_factor, col = "blue",cex=1.2)
   # Sys.sleep(0.1)
 
-  return(rmse)
+  return(mae)
 }
 
 ```
 
-### optimize for each continents
+### optimize for each PFTs
 
 ```{r  echo=FALSE,warning= FALSE}
-#first load the continents information:
+#first load the PFTs information:
 #load the modis data-->tidy from Beni
-df_sites_modis_era <- read_rds(paste0("../data/df_sites_modis_era.csv"))
-#add the continent information:
-df_sites_modis_era$continent<-rep(NA,nrow(df_sites_modis_era))
-pos_NorthAmerica<-c(grep("CA",df_sites_modis_era$sitename),
-              grep("US",df_sites_modis_era$sitename))
-pos_EastAsia<-c(grep("JP",df_sites_modis_era$sitename))
-pos_Europe<-setdiff(c(1:nrow(df_sites_modis_era)),
-                    c(pos_NorthAmerica,pos_EastAsia))
-df_sites_modis_era$continent[pos_Europe]<-"Europe"
-df_sites_modis_era$continent[pos_EastAsia]<-"EastAsia"
-df_sites_modis_era$continent[pos_NorthAmerica]<-"NorthAmerica"
-
+df_sites_modis_era <- read_rds(paste0(base.path,"data/df_sites_modis_era.csv"))
 #
 df_merge<-df_recent %>%
 left_join(
     df_sites_modis_era,
     by = "sitename"
   ) 
-#main continents
-continents<-unique(df_merge$continent)
-# ## optimize for each PFT
+#main PFTs
+PFTs<-unique(df_merge$classid)
+### optimize for each PFT
 # library(tictoc)#-->record the parameterization time
 # tic("start to parameterize")
-# par_continents<-c()
-# for(i in 1:length(continents)){
+# par_PFTs<-c()
+# for(i in 1:length(PFTs)){
 #   df_sel<-df_merge %>%
-#     dplyr::filter(continent==continents[i])
+#     dplyr::filter(classid==PFTs[i])
 # 
 #   optim_par <- GenSA::GenSA(
 #   par = par,
@@ -128,15 +119,15 @@ continents<-unique(df_merge$continent)
 #   control = list(max.call=100))$par
 # 
 #   print(i)
-#   par_continents[[i]]<-optim_par
+#   par_PFTs[[i]]<-optim_par
 # }
 # print("finish parameterization")
 # toc()
-# 
-# names(par_continents)<-continents
-# print(par_continents)
+
+# names(par_PFTs)<-PFTs
+# print(par_PFTs)
 # #save the optimized data
-# save(par_continents,file = paste0("../data/parameters/","optim_par_run100_koen_continents.rds"))
+# save(par_PFTs,file = paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run100_beni_PFTs.rds"))
 ```
 
 ### compare the gpp_obs, ori modelled gpp, and gpp modelled using optimated parameters
@@ -144,9 +135,9 @@ continents<-unique(df_merge$continent)
 print the optim parameters
 
 ```{r message=FALSE,warning=FALSE}
-load(paste0("../data/parameters/","optim_par_run100_koen_continents.rds"))
+load(paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run100_beni_PFTs.rds"))
 #include parameter-->include=FALSE-->Hide output results
-print(par_continents)
+print(par_PFTs)
 ```
 
 ```{r echo=FALSE，message=FALSE,warning=FALSE,include=FALSE}
@@ -155,14 +146,14 @@ print(par_continents)
 #--------------------
 # using the optimilized par
 df_final<-c()
-for (i in 1:length(continents)) {
+for (i in 1:length(PFTs)) {
   df_sel<-df_merge %>%
-    dplyr::filter(continent==continents[i])
+    dplyr::filter(classid==PFTs[i])
   
   scaling_factors <- df_sel %>%
   # group_by(sitename, year) %>%
   do({
-    scaling_factor <- frost_hardiness(.$tmin,par_continents[[i]])
+    scaling_factor <- model_hardening(.,par_PFTs[[i]])
     data.frame(
       sitename = .$sitename,
       date = .$date,
@@ -176,7 +167,7 @@ for (i in 1:length(continents)) {
 }
 
 #-------------------
-#(2) calculate the simple stats for continents
+#(2) calculate the simple stats for PFTs
 #-------------------
 #!!first need to merge the modelled gpp from different sources:
 df_final$year<-lubridate::year(df_final$date)
@@ -193,9 +184,9 @@ df_merge_new<-left_join(df_final,df_old,by = c("sitename", "date", "year")) %>%
 #
 library(sirad)
 df_stats<-c()
-for (i in 1:length(continents)){
+for (i in 1:length(PFTs)){
   df_each<-df_merge_new %>%
-    dplyr::filter(continent==continents[i])
+    dplyr::filter(classid==PFTs[i])
   #
   ori_model_evas<-modeval(df_each$gpp_mod_FULL_ori,df_each$gpp_obs_old,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
   recent_model_evas<-modeval(df_each$gpp_mod_recent_ori,df_each$gpp_obs_recent,stat=c("N","pearson","MAE","RMSE","R2","slope","intercept","EF"))
@@ -207,7 +198,7 @@ for (i in 1:length(continents)){
   #merge different sites
   df_stats[[i]]<-stats_evals
 }
-names(df_stats)<-continents
+names(df_stats)<-PFTs
 print(df_stats)
 ```
 
@@ -228,11 +219,11 @@ library(grid)
 #-------------------------
 plot_modobs_general<-c()
 df_modobs<-c()
-for(i in 1:length(continents)){
+for(i in 1:length(PFTs)){
   #
   df_modobs_each<-df_merge_new %>%
-  filter(continent==continents[i]) %>%
-  select(sitename,date,continent,gpp_obs_recent,gpp_mod_FULL_ori,gpp_mod_recent_ori,gpp_mod_recent_optim) %>%
+  filter(classid==PFTs[i]) %>%
+  select(sitename,date,classid,gpp_obs_recent,gpp_mod_FULL_ori,gpp_mod_recent_ori,gpp_mod_recent_optim) %>%
   mutate(gpp_obs=gpp_obs_recent,
          gpp_mod_old_ori=gpp_mod_FULL_ori,
          gpp_mod_recent_ori=gpp_mod_recent_ori,
@@ -251,11 +242,11 @@ gpp_modobs_comp3<-df_modobs_each %>%
   analyse_modobs2("gpp_mod_recent_optim", "gpp_obs", type = "heat")
 # add the site-name:
 gpp_modobs_comp1$gg<-gpp_modobs_comp1$gg+
-  annotate(geom="text",x=15,y=0,label=continents[i])
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
 gpp_modobs_comp2$gg<-gpp_modobs_comp2$gg+
-  annotate(geom="text",x=15,y=0,label=continents[i])
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
 gpp_modobs_comp3$gg<-gpp_modobs_comp3$gg+
-  annotate(geom="text",x=15,y=0,label=continents[i])
+  annotate(geom="text",x=15,y=0,label=PFTs[i])
 
 #merge two plots
 evaulation_merge_plot<-plot_grid(gpp_modobs_comp1$gg,
@@ -267,23 +258,22 @@ labels = "auto",ncol =3,nrow = 1,label_size = 12,align = "hv")
 #put all the plots together:
 plot_modobs_general[[i]]<-evaulation_merge_plot
 }
-names(plot_modobs_general)<-continents
+names(plot_modobs_general)<-PFTs
 
 #print the plot
 plot_modobs_general
-
 ```
 
 (2) For Seasonality
 
-a. Seasonal course for different continents:
+a. Seasonal course for different PFTs:
+
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
 
 #plotting:
-  #Seasonal course by climate zone:
   season_plot<-df_modobs %>%
   mutate(doy = lubridate::yday(date)) %>%
-  group_by(continent, doy) %>%
+  group_by(classid, doy) %>%
   summarise(obs = mean(gpp_obs, na.rm = TRUE),
             mod_old_ori=mean(gpp_mod_old_ori, na.rm = TRUE),
             mod_recent_ori=mean(gpp_mod_recent_ori, na.rm = TRUE),
@@ -297,20 +287,20 @@ a. Seasonal course for different continents:
   labs(y = expression( paste("GPP (g C m"^-2, " d"^-1, ")" ) ),
        x = "Day of year") +
   annotate(geom="text",x=200,y=2,label="")+
-  facet_wrap(~continent)
+  facet_wrap(~classid)
   
 #print the plot
 season_plot
 ```
 
-b. Seasonal course for each sites in different continents:
+b. Seasonal course for each sites in different PFTs:
  
  - for each site in DBF
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
-#Seasonal course for each sites in different continents:
-# - for Europe
+#Seasonal course for each sites in different PFTs:
+# - for DBF
 df_modobs %>%
-  filter(continent=="Europe") %>%
+  filter(classid=="DBF") %>%
   mutate(doy = lubridate::yday(date)) %>%
   group_by(sitename, doy) %>%
   summarise(obs = mean(gpp_obs, na.rm = TRUE),
@@ -329,12 +319,12 @@ df_modobs %>%
 
 ```
 
-- for each site in North America
+- for each site in MF
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
-#Seasonal course for each sites in different continents:
-# - for NorthAmerica
+#Seasonal course for each sites in different PFTs:
+# - for MF
 df_modobs %>%
-  filter(continent=="NorthAmerica") %>%
+  filter(classid=="MF") %>%
   mutate(doy = lubridate::yday(date)) %>%
   group_by(sitename, doy) %>%
   summarise(obs = mean(gpp_obs, na.rm = TRUE),
@@ -354,12 +344,12 @@ df_modobs %>%
 ```
 
 
-- for each site in East Asia
+- for each site in ENF
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
-#Seasonal course for each sites in different continents:
-# - for East Asia
+#Seasonal course for each sites in different PFTs:
+# - for ENF
 df_modobs %>%
-  filter(continent=="EastAsia") %>%
+  filter(classid=="ENF") %>%
   mutate(doy = lubridate::yday(date)) %>%
   group_by(sitename, doy) %>%
   summarise(obs = mean(gpp_obs, na.rm = TRUE),
@@ -377,4 +367,3 @@ df_modobs %>%
   facet_wrap(~sitename)
 
 ```
-

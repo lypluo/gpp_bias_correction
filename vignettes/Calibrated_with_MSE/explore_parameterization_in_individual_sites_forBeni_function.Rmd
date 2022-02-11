@@ -24,28 +24,29 @@ selection crition and selected sites:
 ### r setup 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(GenSA)
-source("../R/model_hardening_byBeni.R")
+base.path<-"D:/Github/gpp_bias_correction/"
+source(paste0(base.path,"R/","updated_R/model_hardening_byBeni.R"))
 ```
 
 ### (1) read data
 ```{r message=FALSE,warning=FALSE}
 #load the data uploaded by Koen
-df_recent <- readRDS("../data/model_data.rds") %>%
+df_recent <- readRDS(paste0(base.path,"data/model_data.rds")) %>%
   mutate(
     year = format(date, "%Y")
   ) %>%
   na.omit()
 
 #load the data Beni sent me before:
-df_old<-read.csv(file=paste0("../data/","ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv"))
+df_old<-read.csv(file=paste0(base.path,"data/","ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv"))
 df_old<-df_old %>%
   mutate(date=lubridate::mdy(date),
          year=lubridate::year(date)) %>%
-  na.omit(gpp_obs,)
+  na.omit(gpp_obs)
 ```
 
 ### (2) retreive the optimized parameter for the selected sites
@@ -80,11 +81,13 @@ cost <- function(
 
   df <- left_join(data, scaling_factor)
 
+  #rmse
   rmse <- sqrt(
     sum(
       (df$gpp - df$gpp_mod * df$scaling_factor)^2)
     )/nrow(df)
-
+  #mse:mean square error
+  mse<-mean((df$gpp - df$gpp_mod * df$scaling_factor)^2,na.rm=T)
   # This visualizes the process,
   # comment out when running for real
   # plot(df$gpp, type = 'p',ylim=c(0,12))
@@ -92,7 +95,7 @@ cost <- function(
   # lines(df$gpp_mod * df$scaling_factor, col = "blue",cex=1.2)
   # Sys.sleep(0.1)
 
-  return(rmse)
+  return(mse)
 }
 
 ```
@@ -108,9 +111,9 @@ sel_sites<-c("US-MMS","DK-Sor","BE-Vie","DE-Tha","NL-Loo",
 # tic("start to parameterize")
 # par_mutisites<-c()
 # for(i in 1:length(sel_sites)){
-#   df_sel<-df %>%
+#   df_sel<-df_recent %>%
 #     dplyr::filter(sitename==sel_sites[i])
-#   
+# 
 #   optim_par <- GenSA::GenSA(
 #   par = par,
 #   fn = cost,
@@ -128,14 +131,14 @@ sel_sites<-c("US-MMS","DK-Sor","BE-Vie","DE-Tha","NL-Loo",
 # names(par_mutisites)<-sel_sites
 # print(par_mutisites)
 #save the optimized data
-# save(par_mutisites,file = paste0("./data/parameters/","optim_par_run100_beni_mutisites.rds"))
+# save(par_mutisites,file = paste0(base.path,"data/parameters_MSE/","optim_par_run100_beni_mutisites.rds"))
 ```
 
 ### compare the gpp_obs, ori modelled gpp, and gpp modelled using optimated parameters
 
 print the optim parameters
 ```{r message=FALSE,warning=FALSE,include=FALSE}
-load(paste0("../data/parameters/","optim_par_run100_beni_mutisites.rds"))
+load(paste0(base.path,"data/parameters_MSE/","optim_par_run100_beni_mutisites.rds"))
 #include parameter-->include=FALSE-->Hide output results
 print(par_mutisites)
 ```

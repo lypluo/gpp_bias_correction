@@ -179,14 +179,16 @@ pre code {
 <div id="read-data" class="section level3">
 <h3>(1) read data</h3>
 <pre class="r"><code>#load the data uploaded by Koen
-df_recent &lt;- readRDS(&quot;../data/model_data.rds&quot;) %&gt;%
+# df_recent &lt;- readRDS(&quot;../data/model_data.rds&quot;) %&gt;%
+df_recent &lt;- readRDS(paste0(base.path,&quot;data/model_data.rds&quot;)) %&gt;%
   mutate(
     year = format(date, &quot;%Y&quot;)
   ) %&gt;%
   na.omit()
 
 #load the data Beni sent me before:
-df_old&lt;-read.csv(file=paste0(&quot;../data/&quot;,&quot;ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv&quot;))
+# df_old&lt;-read.csv(file=paste0(&quot;../data/&quot;,&quot;ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv&quot;))
+df_old&lt;-read.csv(file=paste0(base.path,&quot;data/&quot;,&quot;ddf_fluxnet2015_pmodel_with_forcings_stocker19gmd.csv&quot;))
 df_old&lt;-df_old %&gt;%
   mutate(date=lubridate::mdy(date),
          year=lubridate::year(date)) %&gt;%
