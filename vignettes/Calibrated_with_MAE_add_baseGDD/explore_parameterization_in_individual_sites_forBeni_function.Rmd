@@ -108,7 +108,7 @@ cost <- function(
 sel_sites<-c("US-MMS","DK-Sor","BE-Vie","DE-Tha","NL-Loo",
 "US-UMB","US-PFa","RU-Fyo","FI-Hyy","IT-Ren")
 
-### optimize for each site 
+## optimize for each site
 # library(tictoc)#-->record the parameterization time
 # tic("start to parameterize")
 # par_mutisites<-c()
@@ -122,7 +122,7 @@ sel_sites<-c("US-MMS","DK-Sor","BE-Vie","DE-Tha","NL-Loo",
 #   data = df_sel,
 #   lower = lower,
 #   upper = upper,
-#   control = list(max.call=100))$par
+#   control = list(max.call=5000))$par
 # 
 #   print(i)
 #   par_mutisites[[i]]<-optim_par
@@ -132,15 +132,15 @@ sel_sites<-c("US-MMS","DK-Sor","BE-Vie","DE-Tha","NL-Loo",
 
 # names(par_mutisites)<-sel_sites
 # print(par_mutisites)
-#save the optimized data
-# save(par_mutisites,file = paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run100_beni_mutisites.rds"))
+# # save the optimized data
+# save(par_mutisites,file = paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run5000_beni_mutisites.rds"))
 ```
 
 ### compare the gpp_obs, ori modelled gpp, and gpp modelled using optimated parameters
 
 print the optim parameters
 ```{r message=FALSE,warning=FALSE,include=FALSE}
-load(paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run100_beni_mutisites.rds"))
+load(paste0(base.path,"data/parameters_MAE_add_baseGDD/","optim_par_run5000_beni_mutisites.rds"))
 #include parameter-->include=FALSE-->Hide output results
 print(par_mutisites)
 ```
