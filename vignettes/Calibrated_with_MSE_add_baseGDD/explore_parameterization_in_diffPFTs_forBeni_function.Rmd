@@ -94,16 +94,16 @@ cost <- function(
 
 ```{r  echo=FALSE,warning= FALSE}
 #first load the PFTs information:
-#load the modis data-->tidy from Beni
-# df_sites_modis_era <- read_rds(paste0(base.path,"data/df_sites_modis_era.csv"))
-# #
-# df_merge<-df_recent %>%
-# left_join(
-#     df_sites_modis_era,
-#     by = "sitename"
-#   ) 
-# #main PFTs
-# PFTs<-unique(df_merge$classid)
+# load the modis data-->tidy from Beni
+df_sites_modis_era <- read_rds(paste0(base.path,"data/df_sites_modis_era.csv"))
+#
+df_merge<-df_recent %>%
+left_join(
+    df_sites_modis_era,
+    by = "sitename"
+  )
+#main PFTs
+PFTs<-unique(df_merge$classid)
 # ## optimize for each PFT
 # library(tictoc)#-->record the parameterization time
 # tic("start to parameterize")

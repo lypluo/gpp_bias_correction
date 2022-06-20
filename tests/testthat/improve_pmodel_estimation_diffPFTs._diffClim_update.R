@@ -149,36 +149,36 @@ df_merge.new<-df_merge.new %>%
 
 #---------------------------------
 # optimize for each Clim.-PFT
-library(tictoc)#-->record the parameterization time
-tic("start to parameterize")
-par_Clim_PFTs<-c()
-for(i in 1:length(Clim.PFTs)){
-  df_sel<-df_merge.new %>%
-    dplyr::filter(Clim_PFTs==Clim.PFTs[i])
-
-  optim_par <- GenSA::GenSA(
-  par = par,
-  fn = cost,
-  data = df_sel,
-  lower = lower,
-  upper = upper,
-  control = list(max.call=5000))$par
-
-  print(i)
-  par_Clim_PFTs[[i]]<-optim_par
-}
-print("finish parameterization")
-toc()
-
-names(par_Clim_PFTs)<-Clim.PFTs
-print(par_Clim_PFTs)
-# save the optimized data
-save(par_Clim_PFTs,file = paste0(base.path,"data/parameters_MSE_add_baseGDD/test/","optim_par_run5000_beni_Clim_andPFTs_update.rds"))
+# library(tictoc)#-->record the parameterization time
+# tic("start to parameterize")
+# par_Clim_PFTs<-c()
+# for(i in 1:length(Clim.PFTs)){
+#   df_sel<-df_merge.new %>%
+#     dplyr::filter(Clim_PFTs==Clim.PFTs[i])
+#
+#   optim_par <- GenSA::GenSA(
+#   par = par,
+#   fn = cost,
+#   data = df_sel,
+#   lower = lower,
+#   upper = upper,
+#   control = list(max.call=5000))$par
+#
+#   print(i)
+#   par_Clim_PFTs[[i]]<-optim_par
+# }
+# print("finish parameterization")
+# toc()
+#
+# names(par_Clim_PFTs)<-Clim.PFTs
+# print(par_Clim_PFTs)
+# # save the optimized data
+# save(par_Clim_PFTs,file = paste0(base.path,"data/parameters_MSE_add_baseGDD/test/","optim_par_run5000_beni_Clim_andPFTs_update.rds"))
 
 #--------------------------------------------------------------
 #(5) compare the gpp_obs, ori modelled gpp, and gpp modelled using optimated parameters
 #--------------------------------------------------------------
-# load(paste0(base.path,"data/parameters_MSE_add_baseGDD/test/","optim_par_run5000_beni_Clim_andPFTs_update.rds"))
+load(paste0(base.path,"data/parameters_MSE_add_baseGDD/test/","optim_par_run5000_beni_Clim_andPFTs_update.rds"))
 #check par_Clim_PFTs
 print(par_Clim_PFTs)
 #a.get the stress factor(calibration factor) for each PFT

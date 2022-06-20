@@ -31,7 +31,8 @@ f_dehardening <- function(temp, par){
 #   xlim(-10, 100)
 
 
-model_hardening <- function(df, par = c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1), plot = FALSE){
+model_hardening <- function(df, par = c("a" = 0, "b" = 0.5, "c" = 50, "d" = 0.1, "e" = 1),
+                    plot = FALSE){
 
   ## data frame df must contain columns:
   ## 'temp': daily mean temperature

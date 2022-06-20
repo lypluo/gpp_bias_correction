@@ -52,30 +52,14 @@ df <- left_join(df, scaling_factors)
 # exploratory plot
 p <- ggplot(df) +
   geom_line(
-    aes(
-      date,
-      gpp_mod
-    ),
-    colour = "red"
-  ) +
+    aes(date,gpp_mod),
+    colour = "red") +
   geom_line(
-    aes(
-      date,
-      gpp_mod * scaling_factor
-    ),
-    colour = "blue"
-  ) +
+    aes(date,gpp_mod * scaling_factor),
+    colour = "blue") +
   geom_point(
-    aes(
-      date,
-      gpp
-    )
-  ) +
-  labs(
-    x = "",
-    y = "GPP",
-    title = "US-NR1"
-  ) +
+    aes(date,gpp)) +
+  labs(x = "",y = "GPP",title = "US-NR1") +
   theme_minimal()
 
 ggsave("niwot.png", width = 7, height = 4)
